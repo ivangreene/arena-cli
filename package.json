@@ -1,6 +1,6 @@
 {
   "name": "are.na-cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "are.na Command Line Interface",
   "main": "index.js",
   "repository": "https://github.com/ivangreene/arena-cli",

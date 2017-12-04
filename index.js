@@ -16,14 +16,21 @@ const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
   if (json) {
     return console.log(JSON.stringify(multiple ? data : data[0], undefined, pretty ? 2 : 0));
   }
-  debugger;
-  select = select.map(item => ({
-    title: { key: 'title' },
-    author: { key: 'user.username' },
-    date: { key: 'created_at' },
-    slug: { key: 'slug' },
-    link: { key: 'slug', method: x => 'https://are.na/' + x }
-  })[item]);
+  select = select.map(item => {
+    if (item === 'link' && type.match(/^block/))
+      item = 'blockLink';
+    else if (item === 'slug' && type.match(/^block/))
+      item = 'id';
+    return ({
+      title: { key: 'title' },
+      author: { key: 'user.username' },
+      date: { key: 'created_at' },
+      slug: { key: 'slug' },
+      link: { key: 'slug', method: x => 'https://www.are.na/channels/' + x },
+      id: { key: 'id' },
+      blockLink: { key: 'id', method: x => 'https://www.are.na/block/' + x }
+    })[item];
+  });
   data.map(d => {
     if (type === 'channels' && d.channels) {
       // d = d.channels;
@@ -60,7 +67,7 @@ yargs
   s: {
     alias: 'select',
     type: 'array',
-    choices: ['title', 'author', 'date', 'slug', 'link'],
+    choices: ['title', 'author', 'date', 'slug', 'link', 'id'],
     describe: 'Fields to select and print'
   },
   j: {
@@ -127,19 +134,26 @@ yargs
  //     .then(datum => console.log(JSON.stringify(datum)))
  //     .catch(console.error);
  // }
-}).command(['create <type> <titles|urls..>', 'new'], 'create channels or blocks', (yargs) => {
+}).command(['create <type> <titles|urls..>', 'new', 'add'], 'create channels or blocks', (yargs) => {
   yargs.positional('type', types);
 }, (argv) => {
   let { type, titles, status, select, json, join, pretty } = argv;
   let multiple = isMultiple(argv);
   let method = type.replace(/s$/, '');
   select = select || ['slug'];
+  let channel;
+  if (method === 'block') {
+    channel = titles.shift();
+  }
   if (!multiple) {
     titles = [titles.join(' ')];
   }
-  Promise.all(titles.map(title => arena[method](title).create(status)))
+  Promise.all(titles.map(title => arena[method]().create(channel || title, channel ? title : status)))
     .then(printOut({ multiple, select, type, json, join, pretty }))
-    .catch(console.error);
+    .catch(console.error); 
+  /*Promise.all(titles.map(title => arena[method](title).create(status)))
+    .then(printOut({ multiple, select, type, json, join, pretty }))
+    .catch(console.error);*/
 }).command('delete <type> <slugs|ids..>', 'delete channels or blocks', (yargs) => {
   yargs.positional('type', types);
 }, (argv) => {

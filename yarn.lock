@@ -10,9 +10,9 @@ ansi-regex@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-3.0.0.tgz#ed0317c322064f79466c02966bddb605ab37d998"
 
-are.na@0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/are.na/-/are.na-0.0.6.tgz#c2a6f12dd0c3f6140f3a52a00c0c13ea75509842"
+are.na@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/are.na/-/are.na-0.0.7.tgz#4c63a26bb2c28caf1b3933ca89a8b9d38995001d"
   dependencies:
     axios "^0.17.1"
     qs "^6.5.1"

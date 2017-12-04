@@ -27,18 +27,16 @@ $ arena create channel hmm
 Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross terminal sessions.
 
 ## Commands:
-- `create`: Create...
-  - `channel <title>`: A new channel
-  - `channels <...titles>`: Shortcut to `channel -m`
-<!---
-  - `block [channel-slug] [url|-c [file]|content]`: A new block. You can specify the URL, or content (or -c to read content from a file)
-  - `blocks`: Shortcut to `block -m`
-  --->
-- `get`: Fetch...
+- `get`: Fetch... (default command, run if no other is specified)
   - `channel <slug|id>`: A channel
   - `channels`: List of public channels
   - `channels <...slugs|ids>`: Multiple channels
   - `block <id>`: Block by ID
+- `create`: Create... (aliases: `new` or `add`)
+  - `channel <title>`: A new channel
+  - `channels <...titles>`: Shortcut to `channel -m`
+  - `block <channel-slug> <url|content>`: A new block. You can specify the URL, or content
+  - `blocks <channel-slug> <...urls|content>`: Shortcut to `block -m`
 - `delete`: Delete...
   - `channel <slug|id>`: A channel
   - `channels <...slugs|ids>`: Multiple channels
@@ -65,13 +63,12 @@ Lancing Ray, lancing-ray
 Celeste Tsai, celeste-tsai
 character sketches, character-sketches
 plt, plt
-```
-<!---
-```bash
-$ arena create blocks excellent-websites-395298 http://archive.org/ http://are.na/
+
+$ arena add blocks excellent-websites http://archive.org/ http://are.na/
 3982834
 3849379
-
+```
+<!---
 $ arena get channel excellent-websites-395298
 Excellent Websites
   Contents:

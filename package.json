@@ -1,0 +1,17 @@
+{
+  "name": "are.na-cli",
+  "version": "0.0.1",
+  "description": "are.na Command Line Interface",
+  "main": "index.js",
+  "repository": "https://github.com/ivangreene/arena-cli",
+  "author": "Ivan Greene",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "are.na": "0.0.6",
+    "yargs": "^10.0.3"
+  },
+  "bin": {
+    "arena": "./index.js"
+  }
+}

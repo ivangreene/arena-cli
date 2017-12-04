@@ -1,6 +1,6 @@
 {
   "name": "are.na-cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "are.na Command Line Interface",
   "main": "index.js",
   "repository": "https://github.com/ivangreene/arena-cli",
@@ -14,5 +14,8 @@
   },
   "bin": {
     "arena": "./index.js"
+  },
+  "scripts": {
+    "postversion": "git push && git push --tags"
   }
 }

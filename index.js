@@ -1,9 +1,57 @@
 #!/usr/bin/env node
 const yargs = require('yargs');
+const loGet = require('lodash.get');
 const Arena = require('are.na');
-const arena = new Arena();
+const arena = new Arena({ accessToken: process.env.ARENA_ACCESS_TOKEN });
 
-const argv = yargs.options({
+const types = {
+  choices: ['channel', 'channels', 'block', 'blocks']
+};
+
+const isMultiple = (argv) => {
+  return ((argv.type === 'channels' || argv.type === 'blocks') || argv.multiple);
+};
+
+const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
+  if (json) {
+    return console.log(JSON.stringify(multiple ? data : data[0], undefined, pretty ? 2 : 0));
+  }
+  debugger;
+  select = select.map(item => ({
+    title: { key: 'title' },
+    author: { key: 'user.username' },
+    date: { key: 'created_at' },
+    slug: { key: 'slug' },
+    link: { key: 'slug', method: x => 'https://are.na/' + x }
+  })[item]);
+  data.map(d => {
+    if (type === 'channels' && d.channels) {
+      // d = d.channels;
+      d.channels.map(d => {
+        let output = select.map(s => {
+          return s.method ?
+            s.method(loGet(d, s.key))
+            : loGet(d, s.key);
+        });
+        console.log(output.join(join));
+      });
+    } else {
+      let output = select.map(s => {
+        return s.method ?
+          s.method(loGet(d, s.key))
+          : loGet(d, s.key);
+      });
+      console.log(output.join(join));
+    }
+  });
+};
+
+yargs
+  .example('$0 channels -x5 -p2 -s slug', 'Get page 2 of a list of 5 new channels, print their slugs')
+  .example('$0 channel great-clothes-4295553', 'Get a channel by slug')
+  .example('$0 create channel Math Problems', 'Create a new channel')
+  .example('$0 delete channel math-problems-389752', 'Delete a channel by slug')
+  .options({
   m: { 
     alias: 'multiple',
     type: 'boolean',
@@ -12,8 +60,14 @@ const argv = yargs.options({
   s: {
     alias: 'select',
     type: 'array',
-    choices: ['title', 'author', 'date', 'slug'],
-    describe: 'Items to select and print'
+    choices: ['title', 'author', 'date', 'slug', 'link'],
+    describe: 'Fields to select and print'
+  },
+  j: {
+    alias: 'join',
+    type: 'string',
+    default: ', ',
+    describe: 'String to join fields by'
   },
   p: { 
     alias: 'page',
@@ -25,7 +79,13 @@ const argv = yargs.options({
     type: 'number',
     describe: 'Get this many results per page'
   },
-  j: { 
+  S: {
+    alias: 'status',
+    type: 'string',
+    choices: ['public', 'closed', 'private'],
+    describe: 'Status of a new or updated channel'
+  },
+  J: { 
     alias: 'json',
     type: 'boolean',
     describe: 'Output JSON rather than the default textual format'
@@ -35,11 +95,11 @@ const argv = yargs.options({
     type: 'boolean',
     describe: 'Pretty print JSON'
   },
-  c: { 
+  /*c: { 
     alias: 'content',
     type: 'string',
     describe: 'Read content from this file (use - for STDIN)'
-  },
+  },*/
   v: {
     alias: 'version',
   },
@@ -47,33 +107,46 @@ const argv = yargs.options({
     alias: 'help',
   },
 }).command(['get <type> [slugs|ids..]', '$0'], 'retrieve channels or blocks', (yargs) => {
-  yargs.positional('type', {
-    choices: ['channel', 'channels', 'block', 'blocks']
-  });
+  yargs.positional('type', types);
 }, (argv) => {
-  if (argv.type === 'channels' || argv.type === 'blocks') {
-    argv.m = true;
-    argv.type = argv.type.replace(/s$/, '');
+  let { type, per, page, ids, select, json, join, pretty } = argv;
+  let multiple = isMultiple(argv);
+  method = type.replace(/s$/, '');
+  select = select || ['title', 'author', 'slug'];
+  if (!multiple) {
+    ids = [ids.join(' ')];
   }
-  if (argv.m) { // Handle multiple requests
-    Promise.all(argv.ids.map(id => arena[argv.type](id).get()))
-      .then(datum => console.log(JSON.stringify(datum)))
-      .catch(console.error);
-  } else { // Handle a single request
-    arena[argv.type](argv.ids.join(' ')).get()
-      .then(datum => console.log(JSON.stringify(datum)))
-      .catch(console.error);
+  if (!ids.length && argv.type === 'channels') {
+    ids = [''];
   }
-})
-.argv;
-
-
-/*.command('create <type>', 'create channels or blocks',
-  (yargs) => {
-    yargs.positional('type', {
-      choices: ['channel', 'block', 'blocks']
-    }, (yargs) => {
-      console.log(yargs.argv);
-    });
+  Promise.all(ids.map(id => arena[method](id, { page, per }).get()))
+    .then(printOut({ multiple, select, type, json, join, pretty }))
+    .catch(console.error);
+ // } else { // Handle a single request
+ //   arena[argv.type](argv.ids.join(' ')).get()
+ //     .then(datum => console.log(JSON.stringify(datum)))
+ //     .catch(console.error);
+ // }
+}).command(['create <type> <titles|urls..>', 'new'], 'create channels or blocks', (yargs) => {
+  yargs.positional('type', types);
+}, (argv) => {
+  let { type, titles, status, select, json, join, pretty } = argv;
+  let multiple = isMultiple(argv);
+  let method = type.replace(/s$/, '');
+  select = select || ['slug'];
+  if (!multiple) {
+    titles = [titles.join(' ')];
   }
-)*/
+  Promise.all(titles.map(title => arena[method](title).create(status)))
+    .then(printOut({ multiple, select, type, json, join, pretty }))
+    .catch(console.error);
+}).command('delete <type> <slugs|ids..>', 'delete channels or blocks', (yargs) => {
+  yargs.positional('type', types);
+}, (argv) => {
+  let { type, ids, status } = argv;
+  let multiple = isMultiple(argv);
+  type = type.replace(/s$/, '');
+  Promise.all(ids.map(id => arena[type](id).delete()))
+    .then(() => console.log('OK.'))
+    .catch(console.error);
+}).argv;

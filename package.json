@@ -3,18 +3,29 @@
   "version": "0.0.3",
   "description": "are.na Command Line Interface",
   "main": "index.js",
-  "repository": "https://github.com/ivangreene/arena-cli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivangreene/arena-cli.git"
+  },
+  "homepage": "https://github.com/ivangreene/arena-cli#readme",
   "author": "Ivan Greene",
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "are.na": "^0.0.7",
+    "are.na": "^0.1.0",
     "lodash.get": "^4.4.2",
     "yargs": "^10.0.3"
   },
   "bin": {
     "arena": "./index.js"
   },
+  "keywords": [
+    "are.na",
+    "cli",
+    "api",
+    "command",
+    "line"
+  ],
   "scripts": {
     "postversion": "git push && git push --tags"
   }

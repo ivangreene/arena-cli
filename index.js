@@ -101,7 +101,7 @@ const commands = command => argv => {
         iterables = [iterables.join(' ')];
       if (!iterables.length && argv.type === 'channels')
         iterables = [''];
-      promises = () => iterables.map(id => arena[method](id, { page, per }).get());
+      promises = () => iterables.map(id => arena[method](id, { page, per, status }).get());
       break;
 
     case 'create':
@@ -179,7 +179,7 @@ yargs
     alias: 'status',
     type: 'string',
     choices: ['public', 'closed', 'private'],
-    describe: 'Status of a new or updated channel'
+    describe: 'Status of new, updated, or retrieved channel[s]'
   },
   J: { 
     alias: 'json',

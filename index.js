@@ -18,7 +18,9 @@ const selectable = {
   slug: { key: 'slug' },
   link: { key: 'slug', method: x => 'https://www.are.na/channels/' + x },
   id: { key: 'id' },
-  blockLink: { key: 'id', method: x => 'https://www.are.na/block/' + x }
+  blockLink: { key: 'id', method: x => 'https://www.are.na/block/' + x },
+  userLink: { key: 'slug', method: x => 'https://www.are.na/' + x },
+  userAuthor: { key: 'username' }
 };
 
 const types = yargs => yargs.positional('type', {
@@ -38,12 +40,16 @@ const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
       item = 'blockLink';
     else if (item === 'slug' && type.match(/^block/))
       item = 'id';
+    else if (item === 'link' && type.match(/^user/))
+      item = 'userLink';
+    else if (item === 'author' && type.match(/^user/))
+      item = 'userAuthor';
     return selectable[item];
   });
   data.map(d => {
-    if (type === 'channels' && d.channels) {
+    if (type.match(/s$/) && d[type]) {
       // d = d.channels;
-      d.channels.map(d => {
+      d[type].map(d => {
         let output = select.map(s => {
           return s.method ?
             s.method(loGet(d, s.key))
@@ -64,20 +70,32 @@ const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
 
 const commands = command => argv => {
   let { type, titles, status, per, page, ids, debug,
-    select, json, join, pretty, file } = argv;
+    select, json, join, pretty, file, query } = argv;
   let multiple = isMultiple(argv);
   let method = type.replace(/s$/, '');
-  let iterables = command === 'create' ? titles : ids;
+  // let iterables = command === 'create' ? titles : ids;
+  let iterables = (function () {
+    switch (command) {
+      case 'create':
+        return titles;
+      case 'get':
+        return ids;
+      case 'search':
+        return query;
+      default:
+        return ids;
+    }
+  })();
   if (!select && argv.link)
     select = ['link'];
-  if (!file) {
-    if ((command === 'get' && !iterables.length && argv.type !== 'channels') ||
-        (command === 'create' && iterables.length <= (method === 'block' ?
-        1 : 0))) {
-      console.warn('Not enough arguments, reading from stdin...');
-      file = '-';
-    }
-  }
+//  if (!file) {
+//    if ((command === 'get' && !iterables.length && argv.type !== 'channels') ||
+//        (command === 'create' && iterables.length <= (method === 'block' ?
+//        1 : 0))) {
+//      console.warn('Not enough arguments, reading from stdin...');
+//      file = '-';
+//    }
+//  }
 
   if (file) {
     if (file === '-') file = '/dev/stdin';
@@ -118,13 +136,22 @@ const commands = command => argv => {
       log = () => console.log('OK.');
       break;
 
+    case 'search':
+      select = select || ['title', 'author', 'slug'];
+      if (!argv.multiple)
+        iterables = [iterables.join(' ')];
+      promises = () => iterables.map(query => arena.search(query || undefined)
+        [type]({ per, page, status })
+        .then(d => ({ [type]: d })));
+      break;
+
   }
 
   if (debug) {
     log = () => {};
     arena.requestHandler = (...req) => new Promise((resolve, reject) => {
-      console.log(...req);
-      resolve();
+      console.log(req[0].toUpperCase(), ...req.slice(1));
+      resolve({});
     });
   }
 
@@ -142,6 +169,10 @@ yargs
     'create channels or blocks', types, commands('create'))
   .command('delete <type> [slugs|ids..]', 'delete channels or blocks',
     types, commands('delete'))
+  .command('search <type> [query..]', 'search channels, blocks, or users',
+    yargs => yargs.positional('type', {
+      choices: ['channels', 'blocks', 'users']
+    }), commands('search'))
   .options({
   m: { 
     alias: 'multiple',

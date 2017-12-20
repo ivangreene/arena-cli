@@ -2,7 +2,7 @@
 
 ```bash
 # Open the 3 most recent public channels in your browser:
-$ arena channels -x3 -s link | xargs open
+$ arena channels -x3 -l | xargs open
 ```
 
 ## Installation
@@ -21,7 +21,6 @@ You may optionally specify an access token for read/write access or retrieving p
 
 ```bash
 $ export ARENA_ACCESS_TOKEN=abcd
-$ arena create channel hmm
 ```
 
 Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross terminal sessions.

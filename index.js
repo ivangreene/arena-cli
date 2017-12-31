@@ -88,6 +88,7 @@ const commands = command => argv => {
   })();
   if (!select && argv.link)
     select = ['link'];
+// Disable automatic stdin reading for now...
 //  if (!file) {
 //    if ((command === 'get' && !iterables.length && argv.type !== 'channels') ||
 //        (command === 'create' && iterables.length <= (method === 'block' ?

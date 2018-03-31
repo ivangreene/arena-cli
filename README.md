@@ -43,6 +43,9 @@ Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross te
   - `channels [query]`: Channels
   - `blocks [query]`: Blocks
   - `users [query]`: Users
+- `edit`: Edit using $VISUAL/$EDITOR...
+  - `block <id>`: A block
+  - `blocks <...ids>`: Multiple blocks
 
 ## Options:
 - `-m, --multiple`: accept multiple arguments (quoted) and execute the command for each: `arena create channel -m "Some Title" "Another One"`

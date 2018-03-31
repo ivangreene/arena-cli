@@ -12,7 +12,8 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "are.na": "^0.1.0",
+    "are.na": "^0.1.1",
+    "external-editor": "^2.1.0",
     "lodash.get": "^4.4.2",
     "yargs": "^10.0.3"
   },

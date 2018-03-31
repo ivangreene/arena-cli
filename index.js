@@ -2,12 +2,13 @@
 const yargs = require('yargs');
 const loGet = require('lodash.get');
 const Arena = require('are.na');
+const editor = require('external-editor');
 const arena = new Arena({ accessToken: process.env.ARENA_ACCESS_TOKEN });
 
 const logError = err => {
   if (err.response && err.response.data)
     console.error(`${err.response.data.code} Error: ${err.response.data.message} (${err.response.data.description})`);
-  else console.error('Unknown Error');
+  else console.error(err);
   process.exit(1);
 };
 
@@ -88,6 +89,7 @@ const commands = command => argv => {
   })();
   if (!select && argv.link)
     select = ['link'];
+
 // Disable automatic stdin reading for now...
 //  if (!file) {
 //    if ((command === 'get' && !iterables.length && argv.type !== 'channels') ||
@@ -146,6 +148,23 @@ const commands = command => argv => {
         .then(d => ({ [type]: d })));
       break;
 
+    case 'edit':
+      select = select || ['slug'];
+      promises = () => iterables.map(item => {
+        return arena.block(item).get().then(block => {
+          let content = editor.edit(block.content);
+          if (content !== block.content) {
+            return arena.block(block.id).update({ content }).then(() => {
+              return Promise.resolve({ id: block.id });
+            });
+          } else {
+            return Promise.resolve({ id: block.id +
+              ': No change to content, not updated.'});
+          }
+        });
+      });
+      break;
+
   }
 
   if (debug) {
@@ -174,8 +193,10 @@ yargs
     yargs => yargs.positional('type', {
       choices: ['channels', 'blocks', 'users']
     }), commands('search'))
+  .command('edit <type> <slugs|ids..>', 'edit a block or channel', types,
+    commands('edit'))
   .options({
-  m: { 
+  m: {
     alias: 'multiple',
     type: 'boolean',
     describe: 'Accept multiple arguments and perform the command for each'

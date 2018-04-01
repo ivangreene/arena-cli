@@ -46,6 +46,8 @@ Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross te
 - `edit`: Edit using $VISUAL/$EDITOR...
   - `block <id>`: A block
   - `blocks <...ids>`: Multiple blocks
+  - `channel <slug|id>`: A channel (only title and status for now...)
+  - `channels <...slugs|ids>`: Multiple channels (only title and status for now...)
 
 ## Options:
 - `-m, --multiple`: accept multiple arguments (quoted) and execute the command for each: `arena create channel -m "Some Title" "Another One"`
@@ -54,7 +56,7 @@ Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross te
 - `-j=string, --join="string"`: Join individual fields with "string" (default: ", ")
 - `-p n, --page=n`: Fetch page number `n`
 - `-x n, --per=n`: Fetch `n` tems per page
-- `-S public, --status=private`: Status of new, updated, or retrieved channel[s]. One of `public`, `closed`, or `private`
+- `-S public, --status=private`: Status of new or retrieved channel[s]. One of `public`, `closed`, or `private`
 - `-J, --json`: Output JSON instead of the default textual format
 - `-P, --pretty`: Pretty print JSON
 - `-f, --file`: Read arguments from this file (use `-` for stdin)

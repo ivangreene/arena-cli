@@ -60,6 +60,7 @@ Add the `export` line to your `.bash_profile` or `.bashrc` to persist accross te
 - `-J, --json`: Output JSON instead of the default textual format
 - `-P, --pretty`: Pretty print JSON
 - `-f, --file`: Read arguments from this file (use `-` for stdin)
+- `-y, --yaml`: Edit blocks/channels with YAML (default is true, use `-y=false`, `--no-yaml`, etc. to disable)
 - `-D, --dry, --debug`: Don't make the requests, print them
 - `-v, --version`: Show version
 - `-h, --help`: Show help
@@ -85,4 +86,7 @@ $ arena search channels websites -x3
 Websites, James Oates, websites--13
 Websites, Ian Williams, websites-1506709551
 Websites, Paul Gacon, websites--22
+
+$ arena edit block 3258203
+# ^ This will open $EDITOR/$VISUAL to edit the block
 ```

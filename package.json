@@ -14,7 +14,10 @@
   "dependencies": {
     "are.na": "^0.1.1",
     "external-editor": "^2.1.0",
+    "js-yaml": "^3.11.0",
     "lodash.get": "^4.4.2",
+    "lodash.isequal": "^4.5.0",
+    "lodash.pick": "^4.4.0",
     "yargs": "^10.0.3"
   },
   "bin": {

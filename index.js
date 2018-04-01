@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 const yargs = require('yargs');
 const loGet = require('lodash.get');
+const isEqual = require('lodash.isequal');
+const pick = require('lodash.pick');
 const Arena = require('are.na');
 const editor = require('external-editor');
+const yaml = require('js-yaml');
 const arena = new Arena({ accessToken: process.env.ARENA_ACCESS_TOKEN });
 
 const logError = err => {
@@ -150,19 +153,40 @@ const commands = command => argv => {
 
     case 'edit':
       select = select || ['slug'];
-      promises = () => iterables.map(item => {
-        return arena.block(item).get().then(block => {
-          let content = editor.edit(block.content);
-          if (content !== block.content) {
-            return arena.block(block.id).update({ content }).then(() => {
-              return Promise.resolve({ id: block.id });
-            });
+      let editable = ['title'];
+      if (method === 'block')
+        editable = ['content', 'title', 'description'];
+      else if (method === 'channel')
+        editable = ['title', 'status'];
+      promises = () => iterables.map(slug => {
+        return arena[method](slug).get().then(item => {
+          let content = {}, before = {};
+          if (argv.yaml) {
+            before = pick(item, editable);
+            content = yaml.safeLoad(editor.edit(yaml.safeDump(before,
+              { lineWidth: 78 })));
           } else {
-            return Promise.resolve({ id: block.id +
-              ': No change to content, not updated.'});
+            before[editable[0]] = item[editable[0]];
+            content[editable[0]] = editor.edit(before[editable[0]])
+              .replace(/[\r\n]+$/, '');
+          }
+          if (!isEqual(content, before)) {
+            // Use Object.assign: currently a bug in are.na's API prevents
+            // updating partially without wiping out the other fields (i.e.:
+            // passing only "content" to be updated will wipe out title and
+            // description if they are not set)
+            return arena[method](item.id)
+              .update(Object.assign({}, pick(item, editable), content))
+              .then(result => {
+                // Returns new object for channels, not blocks
+                return Promise.resolve((result ? result.id : slug) + ': OK.');
+              });
+          } else {
+            return Promise.resolve(slug + ': No change, not updated.');
           }
         });
       });
+      log = message => message.map(m => console.log(m));
       break;
 
   }
@@ -248,6 +272,12 @@ yargs
     alias: 'file',
     type: 'string',
     describe: 'Read arguments from this file (use - for stdin)'
+  },
+  y: {
+    alias: 'yaml',
+    type: 'boolean',
+    default: true,
+    describe: 'Edit blocks/channels using yaml'
   },
   D: {
     alias: ['dry', 'debug'],

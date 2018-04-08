@@ -1,12 +1,26 @@
 #!/usr/bin/env node
 const yargs = require('yargs');
+const fs = require('fs');
 const loGet = require('lodash.get');
 const isEqual = require('lodash.isequal');
 const pick = require('lodash.pick');
 const Arena = require('are.na');
 const editor = require('external-editor');
 const yaml = require('js-yaml');
-const arena = new Arena({ accessToken: process.env.ARENA_ACCESS_TOKEN });
+const findUp = require('find-up');
+
+let config = {};
+
+try {
+  config = yaml.safeLoad(fs.readFileSync(findUp.sync('.arenarc'), 'utf8'));
+} catch (err) {
+  config = {};
+}
+
+config.accessToken = process.env.ARENA_ACCESS_TOKEN || config.accessToken;
+config.aliases = config.aliases || {};
+
+const arena = new Arena({ accessToken: config.accessToken });
 
 const logError = err => {
   if (err.response && err.response.data)
@@ -37,6 +51,7 @@ const isMultiple = (argv) => {
 
 const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
   if (json) {
+    return console.log(yaml.safeDump(multiple ? data : data[0], { lineWidth: 78 }));
     return console.log(JSON.stringify(multiple ? data : data[0], undefined, pretty ? 2 : 0));
   }
   select = select.map(item => {
@@ -73,11 +88,27 @@ const printOut = ({ select, multiple, type, json, join, pretty }) => (data) => {
 };
 
 const commands = command => argv => {
-  let { type, titles, status, per, page, ids, debug,
-    select, json, join, pretty, file, query } = argv;
+
+  let {
+    type,
+    titles,
+    status,
+    per,
+    page,
+    ids,
+    debug,
+    select,
+    json,
+    join,
+    pretty,
+    file,
+    query
+  } = argv;
+
   let multiple = isMultiple(argv);
-  let method = type.replace(/s$/, '');
-  // let iterables = command === 'create' ? titles : ids;
+
+  let method = (type || '').replace(/s$/, '');
+
   let iterables = (function () {
     switch (command) {
       case 'create':
@@ -89,7 +120,13 @@ const commands = command => argv => {
       default:
         return ids;
     }
-  })();
+  })().map(item => config.aliases[item] || item);
+
+  if (!method)
+    method = iterables[0].replace(/:.*$/, '');
+
+  iterables = iterables.map(item => item.replace(/^.*:/, ''));
+
   if (!select && argv.link)
     select = ['link'];
 
@@ -105,7 +142,7 @@ const commands = command => argv => {
 
   if (file) {
     if (file === '-') file = '/dev/stdin';
-    let content = require('fs').readFileSync(file, 'utf8').trim();
+    let content = fs.readFileSync(file, 'utf8').trim();
     content = content.length ?
       (multiple ? content.split('\n') : [content])
       : [];
@@ -217,7 +254,7 @@ yargs
     yargs => yargs.positional('type', {
       choices: ['channels', 'blocks', 'users']
     }), commands('search'))
-  .command('edit <type> <slugs|ids..>', 'edit a block or channel', types,
+  .command('edit [type] <slugs|ids..>', 'edit a block or channel', types,
     commands('edit'))
   .options({
   m: {

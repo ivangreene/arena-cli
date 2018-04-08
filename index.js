@@ -1,38 +1,28 @@
 #!/usr/bin/env node
 const Yargs = require('yargs');
 const fs = require('fs');
-const isEqual = require('lodash.isequal');
-const pick = require('lodash.pick');
 const Arena = require('are.na');
-const editor = require('external-editor');
 const print = require('./lib/print');
 const util = require('./lib/util');
-const yaml = require('js-yaml');
 
 const arena = new Arena({ accessToken: process.env.ARENA_ACCESS_TOKEN });
 
-const types = yargs => yargs.positional('type', {
-  choices: ['channel', 'channels', 'block', 'blocks'],
-});
+const commands = require('./lib/commands')(arena);
 
-const commands = command => (argv) => {
+const runCommand = command => (argv) => {
   let { select, file } = argv;
+  // Determine if we run multiple operations, or just one
   const multiple = util.isMultiple(argv);
+  // Find base method (remove plurality)
   const method = argv.type.replace(/s$/, '');
-  // let iterables = command === 'create' ? titles : ids;
-  let iterables = [...(function chooseIterables() {
-    switch (command) {
-      case 'create':
-        return argv.titles;
-      case 'get':
-        return argv.ids;
-      case 'search':
-        return argv.query;
-      default:
-        return argv.ids;
-    }
-  }())];
-  if (!select && argv.link) select = ['link'];
+
+  // Get the iterable items from the arguments (different names for different
+  // commands)
+  let iterables = [...argv[
+    util.chooseIterables[command] || util.chooseIterables.default
+  ]];
+
+  select = select || util.defaultSelection({ command, ...argv });
 
   // Disable automatic stdin reading for now...
   //  if (!file) {
@@ -52,103 +42,23 @@ const commands = command => (argv) => {
     } else {
       content = [];
     }
+    // Append the contents of the file to our list of iterables
     iterables = [...iterables, ...content];
   }
 
-  let channel;
-  let editable = ['title'];
+  const run = commands[command]({
+    ...argv,
+    method,
+    iterables,
+  });
 
-  let promises = () => [];
-  let log;
+  // promises is a function, returning an Array of Promises
+  const { promises } = run;
 
-  switch (command) {
-    case 'get':
-      select = select || ['title', 'author', 'slug'];
-      if (!multiple && iterables.length)
-        iterables = [iterables.join(' ')];
-      if (!iterables.length && argv.type === 'channels')
-        iterables = [''];
-      promises = () => iterables.map(id => (
-        arena[method](id, pick(argv, ['page', 'per', 'status'])).get()
-      ));
-      break;
-
-    case 'create':
-      select = select || ['slug'];
-      if (method === 'block')
-        channel = iterables.shift();
-      if (!multiple && iterables.length)
-        iterables = [iterables.join(' ')];
-      promises = () => iterables.map(item => (
-        arena[method]().create(
-          channel || item,
-          channel ? item : argv.status,
-        )
-      ));
-      break;
-
-    case 'delete':
-      promises = () => iterables.map(id => arena[method](id).delete());
-      log = () => console.log('OK.');
-      break;
-
-    case 'search':
-      select = select || ['title', 'author', 'slug'];
-      if (!argv.multiple)
-        iterables = [iterables.join(' ')];
-      promises = () => iterables.map(query => (
-        arena.search(query || undefined)[argv.type](pick(
-          argv,
-          ['page', 'per', 'status'],
-        ))
-          .then(d => ({ [argv.type]: d }))
-      ));
-      break;
-
-    case 'edit':
-      select = select || ['slug'];
-      if (method === 'block')
-        editable = ['content', 'title', 'description'];
-      else if (method === 'channel')
-        editable = ['title', 'status'];
-      promises = () => iterables.map(slug => (
-        arena[method](slug).get().then((item) => {
-          let content = {};
-          let before = {};
-          if (argv.yaml) {
-            before = pick(item, editable);
-            content = yaml.safeLoad(editor.edit(yaml.safeDump(
-              before,
-              { lineWidth: 78 },
-            )));
-          } else {
-            before[editable[0]] = item[editable[0]];
-            content[editable[0]] = editor.edit(before[editable[0]])
-              .replace(/[\r\n]+$/, '');
-          }
-          if (!isEqual(content, before)) {
-            // Use Object.assign: currently a bug in are.na's API prevents
-            // updating partially without wiping out the other fields (i.e.:
-            // passing only "content" to be updated will wipe out title and
-            // description if they are not set)
-            return arena[method](item.id)
-              .update(Object.assign({}, pick(item, editable), content))
-              .then(result => (
-                // Returns new object for channels, not blocks
-                Promise.resolve(`${result ? result.id : slug}: OK.`)
-              ));
-          }
-          return Promise.resolve(`${slug}: No change, not updated.`);
-        })
-      ));
-      log = message => message.map(m => console.log(m));
-      break;
-
-    default:
-      break;
-  }
+  let { log } = run;
 
   if (argv.debug) {
+    // Dry-run/debug mode. No requests made, just printed
     log = () => {};
     arena.requestHandler = (...req) => new Promise((resolve) => {
       console.log(req[0].toUpperCase(), ...req.slice(1));
@@ -167,24 +77,28 @@ const commands = command => (argv) => {
     .catch(print.error);
 };
 
+const types = yargs => yargs.positional('type', {
+  choices: ['channel', 'channels', 'block', 'blocks'],
+});
+
 Yargs // eslint-disable-line no-unused-expressions
   .command(
     ['get <type> [slugs|ids..]', '$0'],
     'retrieve channels or blocks',
     types,
-    commands('get'),
+    runCommand('get'),
   )
   .command(
     ['create <type> [titles|urls..]', 'new', 'add'],
     'create channels or blocks',
     types,
-    commands('create'),
+    runCommand('create'),
   )
   .command(
     'delete <type> [slugs|ids..]',
     'delete channels or blocks',
     types,
-    commands('delete'),
+    runCommand('delete'),
   )
   .command(
     'search <type> [query..]',
@@ -192,13 +106,13 @@ Yargs // eslint-disable-line no-unused-expressions
     yargs => yargs.positional('type', {
       choices: ['channels', 'blocks', 'users'],
     }),
-    commands('search'),
+    runCommand('search'),
   )
   .command(
     'edit <type> <slugs|ids..>',
     'edit a block or channel',
     types,
-    commands('edit'),
+    runCommand('edit'),
   )
   .options({
     m: {

@@ -49,6 +49,7 @@ const runCommand = command => (argv) => {
   const run = commands[command]({
     ...argv,
     method,
+    multiple,
     iterables,
   });
 

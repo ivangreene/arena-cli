@@ -12,7 +12,7 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "are.na": "^0.1.1",
+    "are.na": "^0.1.2",
     "external-editor": "^2.1.0",
     "js-yaml": "^3.11.0",
     "lodash.get": "^4.4.2",
